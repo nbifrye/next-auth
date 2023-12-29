@@ -7,6 +7,7 @@ on:
       - beta
       - next
       - 3.x
+      - wip/unstorage-adapter
   pull_request:
   # TODO: Support latest releases
   workflow_dispatch:
@@ -30,6 +31,7 @@ on:
           - "@auth/sequelize-adapter"
           - "@auth/supabase-adapter"
           - "@auth/typeorm-adapter"
+          - "@auth/unstorage-adapter"
           - "@auth/upstash-redis-adapter"
           - "@auth/xata-adapter"
           - "next-auth"
@@ -55,6 +57,7 @@ on:
           - "adapter-sequelize"
           - "adapter-supabase"
           - "adapter-typeorm"
+          - "adapter-unstorage"
           - "adapter-upstash-redis"
           - "adapter-xata"
           - "next-auth"
