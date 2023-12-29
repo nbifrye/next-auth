@@ -2,10 +2,15 @@ import { createStorage } from "unstorage"
 import { runBasicTests } from "utils/adapter"
 import { hydrateDates, UnstorageAdapter } from "../src"
 import "dotenv/config"
+import redisDriver from "unstorage/drivers/redis"
 
 globalThis.crypto ??= require("node:crypto").webcrypto
 
-const storage = createStorage()
+const storage = createStorage({
+  driver: redisDriver({
+    username: "default",
+  }),
+})
 
 runBasicTests({
   adapter: UnstorageAdapter(storage, { baseKeyPrefix: "testApp:" }),
