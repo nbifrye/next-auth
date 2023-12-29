@@ -21,10 +21,10 @@ import type {
   AdapterSession,
   VerificationToken,
 } from "@auth/core/adapters"
-import type { Redis } from "@upstash/redis"
+import type { Storage } from "unstorage"
 
-/** This is the interface of the Upstash Redis adapter options. */
-export interface UpstashRedisAdapterOptions {
+/** This is the interface of the Unstorage adapter options. */
+export interface UnstorageAdapterOptions {
   /**
    * The base prefix for your keys
    */
@@ -145,9 +145,9 @@ export function hydrateDates(json: object) {
  * })
  * ```
  */
-export function UpstashRedisAdapter(
-  client: Redis,
-  options: UpstashRedisAdapterOptions = {}
+export function UnstorageAdapter(
+  storage: Storage,
+  options: UnstorageAdapterOptions = {}
 ): Adapter {
   const mergedOptions = {
     ...defaultOptions,
@@ -167,17 +167,17 @@ export function UpstashRedisAdapter(
     baseKeyPrefix + mergedOptions.verificationTokenKeyPrefix
 
   const setObjectAsJson = async (key: string, obj: any) =>
-    await client.set(key, JSON.stringify(obj))
+    await storage.setItem(key, JSON.stringify(obj))
 
   const setAccount = async (id: string, account: AdapterAccount) => {
     const accountKey = accountKeyPrefix + id
     await setObjectAsJson(accountKey, account)
-    await client.set(accountByUserIdPrefix + account.userId, accountKey)
+    await storage.setItem(accountByUserIdPrefix + account.userId, accountKey)
     return account
   }
 
   const getAccount = async (id: string) => {
-    const account = await client.get<AdapterAccount>(accountKeyPrefix + id)
+    const account = await storage.getItem<AdapterAccount>(accountKeyPrefix + id)
     if (!account) return null
     return hydrateDates(account)
   }
@@ -188,12 +188,12 @@ export function UpstashRedisAdapter(
   ): Promise<AdapterSession> => {
     const sessionKey = sessionKeyPrefix + id
     await setObjectAsJson(sessionKey, session)
-    await client.set(sessionByUserIdKeyPrefix + session.userId, sessionKey)
+    await storage.setItem(sessionByUserIdKeyPrefix + session.userId, sessionKey)
     return session
   }
 
   const getSession = async (id: string) => {
-    const session = await client.get<AdapterSession>(sessionKeyPrefix + id)
+    const session = await storage.getItem<AdapterSession>(sessionKeyPrefix + id)
     if (!session) return null
     return hydrateDates(session)
   }
@@ -203,12 +203,12 @@ export function UpstashRedisAdapter(
     user: AdapterUser
   ): Promise<AdapterUser> => {
     await setObjectAsJson(userKeyPrefix + id, user)
-    await client.set(`${emailKeyPrefix}${user.email as string}`, id)
+    await storage.setItem(`${emailKeyPrefix}${user.email as string}`, id)
     return user
   }
 
   const getUser = async (id: string) => {
-    const user = await client.get<AdapterUser>(userKeyPrefix + id)
+    const user = await storage.getItem<AdapterUser>(userKeyPrefix + id)
     if (!user) return null
     return hydrateDates(user)
   }
@@ -222,7 +222,7 @@ export function UpstashRedisAdapter(
     },
     getUser,
     async getUserByEmail(email) {
-      const userId = await client.get<string>(emailKeyPrefix + email)
+      const userId = await storage.getItem<string>(emailKeyPrefix + email)
       if (!userId) {
         return null
       }
@@ -258,7 +258,7 @@ export function UpstashRedisAdapter(
       return await setSession(updates.sessionToken, { ...session, ...updates })
     },
     async deleteSession(sessionToken) {
-      await client.del(sessionKeyPrefix + sessionToken)
+      await storage.removeItem(sessionKeyPrefix + sessionToken)
     },
     async createVerificationToken(verificationToken) {
       await setObjectAsJson(
@@ -277,10 +277,10 @@ export function UpstashRedisAdapter(
         ":" +
         verificationToken.token
 
-      const token = await client.get<VerificationToken>(tokenKey)
+      const token = await storage.getItem<VerificationToken>(tokenKey)
       if (!token) return null
 
-      await client.del(tokenKey)
+      await storage.removeItem(tokenKey)
       return hydrateDates(token)
       // return reviveFromJson(token)
     },
@@ -289,26 +289,22 @@ export function UpstashRedisAdapter(
       const dbAccount = await getAccount(id)
       if (!dbAccount) return
       const accountKey = `${accountKeyPrefix}${id}`
-      await client.del(
-        accountKey,
-        `${accountByUserIdPrefix} + ${dbAccount.userId as string}`
-      )
+      await storage.removeItem(accountKey)
+      await storage.removeItem(`${accountByUserIdPrefix} + ${dbAccount.userId as string}`)
     },
     async deleteUser(userId) {
       const user = await getUser(userId)
       if (!user) return
       const accountByUserKey = accountByUserIdPrefix + userId
-      const accountKey = await client.get<string>(accountByUserKey)
+      const accountKey = await storage.getItem<string>(accountByUserKey)
       const sessionByUserIdKey = sessionByUserIdKeyPrefix + userId
-      const sessionKey = await client.get<string>(sessionByUserIdKey)
-      await client.del(
-        userKeyPrefix + userId,
-        `${emailKeyPrefix}${user.email as string}`,
-        accountKey as string,
-        accountByUserKey,
-        sessionKey as string,
-        sessionByUserIdKey
-      )
+      const sessionKey = await storage.getItem<string>(sessionByUserIdKey)
+      await storage.removeItem(userKeyPrefix + userId)
+      await storage.removeItem(`${emailKeyPrefix}${user.email as string}`)
+      await storage.removeItem(accountKey as string)
+      await storage.removeItem(accountByUserKey)
+      await storage.removeItem(sessionKey as string)
+      await storage.removeItem(sessionByUserIdKey)
     },
   }
 }
