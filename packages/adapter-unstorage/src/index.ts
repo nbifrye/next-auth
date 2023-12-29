@@ -167,17 +167,19 @@ export function UnstorageAdapter(
     baseKeyPrefix + mergedOptions.verificationTokenKeyPrefix
 
   const setObjectAsJson = async (key: string, obj: any) =>
-    await storage.setItem(key, JSON.stringify(obj))
+    await storage.setItemRaw(key, JSON.stringify(obj))
 
   const setAccount = async (id: string, account: AdapterAccount) => {
     const accountKey = accountKeyPrefix + id
     await setObjectAsJson(accountKey, account)
-    await storage.setItem(accountByUserIdPrefix + account.userId, accountKey)
+    await storage.setItemRaw(accountByUserIdPrefix + account.userId, accountKey)
     return account
   }
 
   const getAccount = async (id: string) => {
-    const account = await storage.getItem<AdapterAccount>(accountKeyPrefix + id)
+    const account = await storage.getItemRaw<AdapterAccount>(
+      accountKeyPrefix + id
+    )
     if (!account) return null
     return hydrateDates(account)
   }
@@ -188,12 +190,17 @@ export function UnstorageAdapter(
   ): Promise<AdapterSession> => {
     const sessionKey = sessionKeyPrefix + id
     await setObjectAsJson(sessionKey, session)
-    await storage.setItem(sessionByUserIdKeyPrefix + session.userId, sessionKey)
+    await storage.setItemRaw(
+      sessionByUserIdKeyPrefix + session.userId,
+      sessionKey
+    )
     return session
   }
 
   const getSession = async (id: string) => {
-    const session = await storage.getItem<AdapterSession>(sessionKeyPrefix + id)
+    const session = await storage.getItemRaw<AdapterSession>(
+      sessionKeyPrefix + id
+    )
     if (!session) return null
     return hydrateDates(session)
   }
@@ -203,12 +210,12 @@ export function UnstorageAdapter(
     user: AdapterUser
   ): Promise<AdapterUser> => {
     await setObjectAsJson(userKeyPrefix + id, user)
-    await storage.setItem(`${emailKeyPrefix}${user.email as string}`, id)
+    await storage.setItemRaw(`${emailKeyPrefix}${user.email as string}`, id)
     return user
   }
 
   const getUser = async (id: string) => {
-    const user = await storage.getItem<AdapterUser>(userKeyPrefix + id)
+    const user = await storage.getItemRaw<AdapterUser>(userKeyPrefix + id)
     if (!user) return null
     return hydrateDates(user)
   }
@@ -222,7 +229,7 @@ export function UnstorageAdapter(
     },
     getUser,
     async getUserByEmail(email) {
-      const userId = await storage.getItem<string>(emailKeyPrefix + email)
+      const userId = await storage.getItemRaw<string>(emailKeyPrefix + email)
       if (!userId) {
         return null
       }
@@ -277,7 +284,7 @@ export function UnstorageAdapter(
         ":" +
         verificationToken.token
 
-      const token = await storage.getItem<VerificationToken>(tokenKey)
+      const token = await storage.getItemRaw<VerificationToken>(tokenKey)
       if (!token) return null
 
       await storage.removeItem(tokenKey)
@@ -290,15 +297,17 @@ export function UnstorageAdapter(
       if (!dbAccount) return
       const accountKey = `${accountKeyPrefix}${id}`
       await storage.removeItem(accountKey)
-      await storage.removeItem(`${accountByUserIdPrefix} + ${dbAccount.userId as string}`)
+      await storage.removeItem(
+        `${accountByUserIdPrefix} + ${dbAccount.userId as string}`
+      )
     },
     async deleteUser(userId) {
       const user = await getUser(userId)
       if (!user) return
       const accountByUserKey = accountByUserIdPrefix + userId
-      const accountKey = await storage.getItem<string>(accountByUserKey)
+      const accountKey = await storage.getItemRaw<string>(accountByUserKey)
       const sessionByUserIdKey = sessionByUserIdKeyPrefix + userId
-      const sessionKey = await storage.getItem<string>(sessionByUserIdKey)
+      const sessionKey = await storage.getItemRaw<string>(sessionByUserIdKey)
       await storage.removeItem(userKeyPrefix + userId)
       await storage.removeItem(`${emailKeyPrefix}${user.email as string}`)
       await storage.removeItem(accountKey as string)
