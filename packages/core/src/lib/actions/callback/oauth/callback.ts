@@ -35,21 +35,13 @@ export async function handleOAuth(
   const { logger, provider } = options
   let as: o.AuthorizationServer
 
-  const { token, userinfo } = provider
+  const { token, userinfo, discoveredAs } = provider
   // Falls back to authjs.dev if the user only passed params
   if (
     (!token?.url || token.url.host === "authjs.dev") &&
-    (!userinfo?.url || userinfo.url.host === "authjs.dev")
+    (!userinfo?.url || userinfo.url.host === "authjs.dev") &&
+    discoveredAs
   ) {
-    // We assume that issuer is always defined as this has been asserted earlier
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const issuer = new URL(provider.issuer!)
-    const discoveryResponse = await o.discoveryRequest(issuer)
-    const discoveredAs = await o.processDiscoveryResponse(
-      issuer,
-      discoveryResponse
-    )
-
     if (!discoveredAs.token_endpoint)
       throw new TypeError(
         "TODO: Authorization server did not provide a token endpoint."

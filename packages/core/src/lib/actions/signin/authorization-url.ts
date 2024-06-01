@@ -20,20 +20,14 @@ export async function getAuthorizationUrl(
 
   // Falls back to authjs.dev if the user only passed params
   if (!url || url.host === "authjs.dev") {
-    // If url is undefined, we assume that issuer is always defined
-    // We check this in assert.ts
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const issuer = new URL(provider.issuer!)
-    const discoveryResponse = await o.discoveryRequest(issuer)
-    const as = await o.processDiscoveryResponse(issuer, discoveryResponse)
-
-    if (!as.authorization_endpoint) {
+    const { discoveredAs } = provider
+    if (!discoveredAs!.authorization_endpoint) {
       throw new TypeError(
         "Authorization server did not provide an authorization endpoint."
       )
     }
 
-    url = new URL(as.authorization_endpoint)
+    url = new URL(discoveredAs!.authorization_endpoint)
   }
 
   const authParams = url.searchParams
@@ -88,8 +82,6 @@ export async function getAuthorizationUrl(
     cookies.push(nonce.cookie)
   }
 
-  // TODO: This does not work in normalizeOAuth because authorization endpoint can come from discovery
-  // Need to make normalizeOAuth async
   if (provider.type === "oidc" && !url.searchParams.has("scope")) {
     url.searchParams.set("scope", "openid profile email")
   }
