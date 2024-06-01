@@ -12,6 +12,8 @@ import type {
 import type { InternalProvider, Profile } from "../../types.js"
 import type { AuthConfig } from "../../index.js"
 
+import * as o from "oauth4webapi"
+
 /**
  * Adds `signinUrl` and `callbackUrl` to each provider
  * and deep merge user-defined options.
@@ -55,8 +57,6 @@ export default async function parseProviders(params: {
   }
 }
 
-// TODO: Also add discovery here, if some endpoints/config are missing.
-// We should return both a client and authorization server config.
 async function normalizeOAuth(
   c: OAuthConfig<any> | OAuthUserConfig<any>
 ): Promise<OAuthConfigInternal<any> | {}> {
@@ -77,12 +77,20 @@ async function normalizeOAuth(
     c.redirectProxyUrl = `${c.redirectProxyUrl}/callback/${c.id}`
   }
 
+  let discoveredAs: o.AuthorizationServer | undefined
+  if (c.issuer) {
+    const issuer = new URL(c.issuer)
+    const discoveryResponse = await o.discoveryRequest(issuer)
+    discoveredAs = await o.processDiscoveryResponse(issuer, discoveryResponse)
+  }
+
   return {
     ...c,
     authorization,
     token,
     checks,
     userinfo,
+    discoveredAs,
     profile: c.profile ?? defaultProfile,
     account: c.account ?? defaultAccount,
   }
