@@ -88,8 +88,6 @@ export async function getAuthorizationUrl(
     cookies.push(nonce.cookie)
   }
 
-  // TODO: This does not work in normalizeOAuth because authorization endpoint can come from discovery
-  // Need to make normalizeOAuth async
   if (provider.type === "oidc" && !url.searchParams.has("scope")) {
     url.searchParams.set("scope", "openid profile email")
   }
