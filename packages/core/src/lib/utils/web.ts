@@ -35,7 +35,15 @@ export async function toInternalRequest(
     // Defaults are usually set in the `init` function, but this is needed below
     config.basePath ??= "/auth"
 
-    const url = new URL(req.url)
+    let url = new URL(req.url)
+
+    const fromRequest = req.headers.get("x-forwarded-host")
+    const fromRequestProto = req.headers.get("x-forwarded-proto")
+    if (fromRequest && fromRequestProto && config.trustHost) {
+      url = new URL(
+        `${fromRequestProto}://${fromRequest}${url.pathname}${url.search}`
+      )
+    }
 
     const { action, providerId } = parseActionAndProviderId(
       url.pathname,
